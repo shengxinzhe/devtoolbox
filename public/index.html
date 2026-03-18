@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevToolBox - 开发者免费工具箱</title>
+<meta name="description" content="免费在线开发者工具：QR Code 生成、Base64 编解码、SHA 哈希、JSON 格式化、UUID 生成、Markdown 预览。无需注册，打开即用。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<!--
+  ============ GOOGLE ADSENSE ============
+  Step 1: Replace YOUR_PUB_ID with your AdSense publisher ID (e.g., ca-pub-1234567890)
+  Step 2: Uncomment the script tag below
+  Step 3: Replace each ad slot's placeholder with your ad unit code from AdSense
+  ========================================
+-->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_PUB_ID" crossorigin="anonymous"></script> -->
+<script defer src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--bg-2:#0e0e16;--bg-3:#13131e;--bg-card:#111119;
+  --cyan:#00d4ff;--cyan-dim:rgba(0,212,255,.15);--cyan-glow:rgba(0,212,255,.4);
+  --purple:#8b5cf6;--green:#22d3a7;--amber:#f59e0b;--rose:#f43f5e;
+  --text:#e4e4ef;--text-dim:#7a7a92;--text-muted:#4a4a62;
+  --border:#1e1e2e;--border-lit:#2a2a3e;
+  --font-head:'Outfit',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);line-height:1.6;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden}
+
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);opacity:.4}
+
+.grid-bg{position:fixed;inset:0;z-index:-1;overflow:hidden}
+.grid-bg::before{content:'';position:absolute;inset:-50%;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.3;transform:perspective(500px) rotateX(60deg);transform-origin:center 20%}
+.grid-bg::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,212,255,.08),transparent 70%)}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;
+  background:rgba(10,10,15,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-c{max-width:900px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.15rem;color:#fff;text-decoration:none;
+  display:flex;align-items:center;gap:8px}
+.logo-mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:#fff}
+.nav-r{display:flex;align-items:center;gap:20px}
+.nav-r a{color:var(--text-dim);text-decoration:none;font-size:.82rem;font-family:var(--font-head);
+  font-weight:500;transition:color .2s}
+.nav-r a:hover,.nav-r a.active{color:var(--cyan)}
+.nav-game{padding:5px 14px;border-radius:6px;border:1px solid var(--border-lit);
+  background:var(--bg-3);transition:all .2s}
+.nav-game:hover{border-color:var(--cyan);background:var(--cyan-dim)}
+
+/* Hero */
+.hero{padding:90px 20px 24px;text-align:center}
+.hero h1{font-family:var(--font-head);font-size:clamp(1.6rem,4vw,2.4rem);font-weight:800;
+  color:#fff;letter-spacing:-.02em;margin-bottom:6px}
+.hero h1 span{background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero p{font-size:.85rem;color:var(--text-muted)}
+
+/* Tools Container */
+.tools{max-width:720px;margin:0 auto;padding:0 16px 40px}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;
+  scrollbar-width:none;-ms-overflow-style:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:var(--bg-2);
+  color:var(--text-dim);font-size:.78rem;font-weight:600;cursor:pointer;white-space:nowrap;
+  font-family:var(--font-head);transition:all .2s;flex-shrink:0}
+.tab:hover{border-color:var(--text-muted);color:var(--text)}
+.tab.active{border-color:var(--cyan);background:var(--cyan-dim);color:var(--cyan)}
+
+/* Panel */
+.panel{display:none;animation:fadeIn .25s ease}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+.tool-desc{font-size:.78rem;color:var(--text-muted);margin-bottom:14px}
+
+.input-area{width:100%;min-height:100px;padding:14px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg-2);color:var(--text);font-family:var(--font-mono);font-size:.85rem;
+  resize:vertical;line-height:1.5;outline:none;transition:border-color .2s}
+.input-area:focus{border-color:var(--cyan)}
+.input-sm{min-height:44px;resize:none}
+
+.settings{display:flex;gap:10px;align-items:center;margin:10px 0;flex-wrap:wrap}
+.sel{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-3);
+  color:var(--text);font-size:.78rem;font-family:var(--font-mono);outline:none;cursor:pointer}
+.sel:focus{border-color:var(--cyan)}
+.radio-group{display:flex;gap:0;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.radio-group label{padding:6px 14px;font-size:.78rem;cursor:pointer;background:var(--bg-3);
+  color:var(--text-dim);transition:all .15s;border-right:1px solid var(--border)}
+.radio-group label:last-child{border-right:none}
+.radio-group input{display:none}
+.radio-group input:checked+span{color:var(--cyan);background:var(--cyan-dim)}
+.radio-group label:has(input:checked){background:var(--cyan-dim);color:var(--cyan)}
+
+.tool-btn{padding:10px 24px;border-radius:8px;border:none;background:var(--cyan);color:var(--bg);
+  font-size:.85rem;font-weight:700;cursor:pointer;font-family:var(--font-head);
+  transition:all .2s;margin:12px 0}
+.tool-btn:hover{box-shadow:0 0 20px var(--cyan-glow);transform:translateY(-1px)}
+.tool-btn:active{transform:scale(.97)}
+
+.output-box{position:relative;margin-top:12px;padding:16px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg-2);min-height:48px;word-break:break-all;font-size:.82rem;line-height:1.6;
+  white-space:pre-wrap}
+.output-box:empty::before{content:'结果将显示在这里';color:var(--text-muted);font-size:.78rem}
+.output-box.success{border-color:rgba(34,211,167,.3)}
+.output-box.error{border-color:rgba(244,63,94,.3);color:var(--rose)}
+
+.copy-btn{position:absolute;top:8px;right:8px;padding:4px 10px;border-radius:5px;border:1px solid var(--border);
+  background:var(--bg-3);color:var(--text-dim);font-size:.7rem;cursor:pointer;font-family:var(--font-mono);
+  transition:all .15s;opacity:0}
+.output-box:hover .copy-btn,.copy-btn:focus{opacity:1}
+.copy-btn:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* QR specific */
+.qr-result{text-align:center;margin-top:12px}
+.qr-result img{border-radius:10px;background:#fff;padding:12px;max-width:260px}
+.qr-actions{margin-top:10px;display:flex;gap:8px;justify-content:center}
+.qr-actions button{padding:6px 14px;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg-3);color:var(--text-dim);font-size:.75rem;cursor:pointer;font-family:var(--font-mono);
+  transition:all .15s}
+.qr-actions button:hover{border-color:var(--cyan);color:var(--cyan)}
+
+/* Markdown preview */
+.md-preview{margin-top:12px;padding:20px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg-2);min-height:80px;font-size:.85rem;line-height:1.7}
+.md-preview h1,.md-preview h2,.md-preview h3{font-family:var(--font-head);color:#fff;margin:16px 0 8px}
+.md-preview h1{font-size:1.4rem}.md-preview h2{font-size:1.15rem}.md-preview h3{font-size:1rem}
+.md-preview p{margin-bottom:10px;color:var(--text-dim)}
+.md-preview code{background:var(--bg-3);padding:2px 6px;border-radius:4px;font-size:.8rem;color:var(--cyan)}
+.md-preview pre{background:var(--bg-3);padding:12px;border-radius:8px;overflow-x:auto;margin:10px 0}
+.md-preview pre code{background:none;padding:0}
+.md-preview ul,.md-preview ol{padding-left:24px;margin-bottom:10px;color:var(--text-dim)}
+.md-preview a{color:var(--cyan)}
+.md-preview blockquote{border-left:3px solid var(--cyan);padding-left:14px;color:var(--text-muted);margin:10px 0}
+.md-preview table{border-collapse:collapse;width:100%;margin:10px 0}
+.md-preview th,.md-preview td{border:1px solid var(--border);padding:6px 10px;font-size:.8rem;text-align:left}
+.md-preview th{background:var(--bg-3);color:#fff}
+.md-preview:empty::before{content:'Markdown 预览将显示在这里';color:var(--text-muted);font-size:.78rem}
+
+/* Game Promo */
+.game-promo{max-width:720px;margin:0 auto 40px;padding:0 16px}
+.promo-card{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:24px 28px;border-radius:14px;border:1px solid var(--border);background:var(--bg-card);
+  position:relative;overflow:hidden;transition:all .3s var(--ease)}
+.promo-card::before{content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(139,92,246,.05));pointer-events:none}
+.promo-card:hover{border-color:var(--border-lit);transform:translateY(-2px)}
+.promo-info h3{font-family:var(--font-head);font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:4px;
+  letter-spacing:.03em}
+.promo-info h3 span{color:var(--cyan)}
+.promo-info p{font-size:.78rem;color:var(--text-muted)}
+.promo-btn{padding:10px 22px;border-radius:8px;border:1px solid var(--cyan);background:transparent;
+  color:var(--cyan);font-size:.82rem;font-weight:600;text-decoration:none;font-family:var(--font-head);
+  transition:all .2s;white-space:nowrap;flex-shrink:0}
+.promo-btn:hover{background:var(--cyan-dim);box-shadow:0 0 16px var(--cyan-glow)}
+
+/* Ad Slots */
+.ad-slot{max-width:720px;margin:0 auto;padding:0 16px}
+.ad-container{border-radius:10px;border:1px solid var(--border);background:var(--bg-2);
+  overflow:hidden;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center;
+  position:relative}
+.ad-container.ad-banner{min-height:90px;margin-bottom:20px}
+.ad-container.ad-rect{min-height:250px;margin:20px 0}
+.ad-label{position:absolute;top:4px;right:8px;font-size:.55rem;color:var(--text-muted);
+  letter-spacing:.05em;text-transform:uppercase;font-family:var(--font-head)}
+.ad-placeholder{color:var(--text-muted);font-size:.72rem;font-family:var(--font-head)}
+
+/* Footer */
+.footer{text-align:center;padding:20px;border-top:1px solid var(--border);font-size:.7rem;color:var(--text-muted)}
+
+/* Toast */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);padding:8px 20px;
+  border-radius:8px;background:#fff;color:#000;font-size:.82rem;font-weight:600;
+  font-family:var(--font-head);z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Responsive */
+@media(max-width:600px){
+  .promo-card{flex-direction:column;text-align:center}
+  .tab{padding:7px 12px;font-size:.72rem}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav><div class="nav-c">
+  <a href="/" class="logo"><div class="logo-mark">DT</div>DevToolBox</a>
+  <div class="nav-r">
+    <a href="/" class="active">工具</a>
+    <a href="/game.html" class="nav-game">游戏</a>
+  </div>
+</div></nav>
+
+<section class="hero">
+  <h1>开发者<span>工具箱</span></h1>
+  <p>免费在线工具 | 无需注册 | 打开即用</p>
+</section>
+
+<!-- AD SLOT 1: Banner between hero and tools -->
+<div class="ad-slot">
+  <div class="ad-container ad-banner" id="ad-top">
+    <span class="ad-label">AD</span>
+    <!-- ADSENSE: Replace this div's content with your ad unit code -->
+    <span class="ad-placeholder">广告位</span>
+  </div>
+</div>
+
+<main class="tools">
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-t="qr">QR Code</button>
+    <button class="tab" data-t="b64">Base64</button>
+    <button class="tab" data-t="hash">Hash</button>
+    <button class="tab" data-t="json">JSON</button>
+    <button class="tab" data-t="uuid">UUID</button>
+    <button class="tab" data-t="md">Markdown</button>
+  </div>
+
+  <!-- QR Code -->
+  <div class="panel active" id="p-qr">
+    <div class="tool-desc">输入文本或链接，生成二维码图片</div>
+    <textarea class="input-area input-sm" id="qrInput" placeholder="输入文本或 URL..." rows="2">https://example.com</textarea>
+    <div class="settings">
+      <span style="font-size:.75rem;color:var(--text-muted)">尺寸:</span>
+      <select class="sel" id="qrSize">
+        <option value="200">200px</option>
+        <option value="300" selected>300px</option>
+        <option value="500">500px</option>
+      </select>
+    </div>
+    <button class="tool-btn" onclick="genQR()">生成二维码</button>
+    <div class="qr-result" id="qrResult"></div>
+  </div>
+
+  <!-- Base64 -->
+  <div class="panel" id="p-b64">
+    <div class="tool-desc">Base64 编码 / 解码文本</div>
+    <textarea class="input-area" id="b64Input" placeholder="输入要编码或解码的文本..." rows="4"></textarea>
+    <div class="settings">
+      <div class="radio-group">
+        <label><input type="radio" name="b64mode" value="encode" checked><span>编码</span></label>
+        <label><input type="radio" name="b64mode" value="decode"><span>解码</span></label>
+      </div>
+    </div>
+    <button class="tool-btn" onclick="doBase64()">转换</button>
+    <div class="output-box" id="b64Out"><button class="copy-btn" onclick="copyOut('b64Out')">复制</button></div>
+  </div>
+
+  <!-- Hash -->
+  <div class="panel" id="p-hash">
+    <div class="tool-desc">计算文本的哈希摘要</div>
+    <textarea class="input-area" id="hashInput" placeholder="输入要计算哈希的文本..." rows="4"></textarea>
+    <div class="settings">
+      <select class="sel" id="hashAlgo">
+        <option value="SHA-1">SHA-1</option>
+        <option value="SHA-256" selected>SHA-256</option>
+        <option value="SHA-512">SHA-512</option>
+      </select>
+    </div>
+    <button class="tool-btn" onclick="doHash()">计算</button>
+    <div class="output-box" id="hashOut"><button class="copy-btn" onclick="copyOut('hashOut')">复制</button></div>
+  </div>
+
+  <!-- JSON -->
+  <div class="panel" id="p-json">
+    <div class="tool-desc">格式化 / 校验 JSON 数据</div>
+    <textarea class="input-area" id="jsonInput" placeholder='{"key": "value", "num": 123}' rows="6"></textarea>
+    <div class="settings">
+      <span style="font-size:.75rem;color:var(--text-muted)">缩进:</span>
+      <select class="sel" id="jsonIndent">
+        <option value="2" selected>2 空格</option>
+        <option value="4">4 空格</option>
+        <option value="tab">Tab</option>
+      </select>
+    </div>
+    <button class="tool-btn" onclick="doJSON()">格式化</button>
+    <div class="output-box" id="jsonOut"><button class="copy-btn" onclick="copyOut('jsonOut')">复制</button></div>
+  </div>
+
+  <!-- UUID -->
+  <div class="panel" id="p-uuid">
+    <div class="tool-desc">生成随机 UUID v4</div>
+    <div class="settings">
+      <span style="font-size:.75rem;color:var(--text-muted)">数量:</span>
+      <select class="sel" id="uuidCount">
+        <option value="1" selected>1</option>
+        <option value="5">5</option>
+        <option value="10">10</option>
+        <option value="20">20</option>
+        <option value="50">50</option>
+      </select>
+    </div>
+    <button class="tool-btn" onclick="genUUID()">生成</button>
+    <div class="output-box" id="uuidOut"><button class="copy-btn" onclick="copyOut('uuidOut')">复制</button></div>
+  </div>
+
+  <!-- Markdown -->
+  <div class="panel" id="p-md">
+    <div class="tool-desc">实时 Markdown 预览（输入即渲染）</div>
+    <textarea class="input-area" id="mdInput" placeholder="# 标题&#10;&#10;正文内容..." rows="6" oninput="renderMD()"></textarea>
+    <div class="md-preview" id="mdOut"></div>
+  </div>
+</main>
+
+<!-- AD SLOT 2: Rectangle between tools and game promo -->
+<div class="ad-slot">
+  <div class="ad-container ad-rect" id="ad-mid">
+    <span class="ad-label">AD</span>
+    <!-- ADSENSE: Replace this div's content with your ad unit code -->
+    <span class="ad-placeholder">广告位</span>
+  </div>
+</div>
+
+<section class="game-promo">
+  <div class="promo-card">
+    <div class="promo-info">
+      <h3>CODE <span>BREAKER</span></h3>
+      <p>每日十六进制密码挑战 -- 测试你的逻辑推理能力</p>
+    </div>
+    <a href="/game.html" class="promo-btn">开始挑战 &rarr;</a>
+  </div>
+</section>
+
+<footer class="footer">DevToolBox &copy; 2026 - 免费开发者工具</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== Tab Switching ====================
+document.getElementById('tabs').addEventListener('click', e => {
+  const btn = e.target.closest('.tab');
+  if (!btn) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('p-' + btn.dataset.t).classList.add('active');
+});
+
+// ==================== Toast ====================
+let toastTimer;
+function showToast(msg, dur = 1500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ==================== Copy ====================
+function copyOut(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText || el.textContent;
+  if (!text.trim()) return;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text.trim()).then(() => showToast('已复制'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text.trim(); ta.style.cssText = 'position:fixed;opacity:0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('已复制');
+  }
+}
+
+// ==================== QR Code ====================
+function genQR() {
+  const text = document.getElementById('qrInput').value.trim();
+  if (!text) { showToast('请输入内容'); return; }
+  const size = parseInt(document.getElementById('qrSize').value);
+  const container = document.getElementById('qrResult');
+  if (typeof QRCode === 'undefined') { container.innerHTML = '<p style="color:var(--rose)">QR 库加载失败，请刷新</p>'; return; }
+  QRCode.toDataURL(text, { width: size, margin: 2 }).then(url => {
+    container.innerHTML = `<img src="${url}" alt="QR Code" width="${size}">
+      <div class="qr-actions"><button onclick="downloadQR()">下载图片</button></div>`;
+  }).catch(() => container.innerHTML = '<p style="color:var(--rose)">生成失败</p>');
+}
+function downloadQR() {
+  const img = document.querySelector('.qr-result img');
+  if (!img) return;
+  const a = document.createElement('a');
+  a.href = img.src; a.download = 'qrcode.png'; a.click();
+}
+
+// ==================== Base64 ====================
+function doBase64() {
+  const text = document.getElementById('b64Input').value;
+  if (!text) { showToast('请输入内容'); return; }
+  const mode = document.querySelector('input[name="b64mode"]:checked').value;
+  const out = document.getElementById('b64Out');
+  try {
+    let result;
+    if (mode === 'encode') {
+      result = btoa(unescape(encodeURIComponent(text)));
+    } else {
+      result = decodeURIComponent(escape(atob(text)));
+    }
+    out.className = 'output-box success';
+    out.innerHTML = result + '<button class="copy-btn" onclick="copyOut(\'b64Out\')">复制</button>';
+  } catch (e) {
+    out.className = 'output-box error';
+    out.innerHTML = '错误: ' + e.message;
+  }
+}
+
+// ==================== Hash ====================
+async function doHash() {
+  const text = document.getElementById('hashInput').value;
+  if (!text) { showToast('请输入内容'); return; }
+  const algo = document.getElementById('hashAlgo').value;
+  const out = document.getElementById('hashOut');
+  try {
+    const data = new TextEncoder().encode(text);
+    const buf = await crypto.subtle.digest(algo, data);
+    const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    out.className = 'output-box success';
+    out.innerHTML = hex + '<button class="copy-btn" onclick="copyOut(\'hashOut\')">复制</button>';
+  } catch (e) {
+    out.className = 'output-box error';
+    out.innerHTML = '错误: ' + e.message;
+  }
+}
+
+// ==================== JSON ====================
+function doJSON() {
+  const text = document.getElementById('jsonInput').value.trim();
+  if (!text) { showToast('请输入 JSON'); return; }
+  const out = document.getElementById('jsonOut');
+  try {
+    const parsed = JSON.parse(text);
+    const indentVal = document.getElementById('jsonIndent').value;
+    const indent = indentVal === 'tab' ? '\t' : parseInt(indentVal);
+    const formatted = JSON.stringify(parsed, null, indent);
+    out.className = 'output-box success';
+    out.innerHTML = escapeHtml(formatted) + '<button class="copy-btn" onclick="copyOut(\'jsonOut\')">复制</button>';
+  } catch (e) {
+    out.className = 'output-box error';
+    out.innerHTML = 'JSON 无效: ' + e.message;
+  }
+}
+function escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ==================== UUID ====================
+function makeUUID() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+function genUUID() {
+  const n = parseInt(document.getElementById('uuidCount').value);
+  const uuids = Array.from({ length: n }, () => makeUUID()).join('\n');
+  const out = document.getElementById('uuidOut');
+  out.className = 'output-box success';
+  out.innerHTML = uuids + '<button class="copy-btn" onclick="copyOut(\'uuidOut\')">复制</button>';
+}
+
+// ==================== Markdown ====================
+function renderMD() {
+  const text = document.getElementById('mdInput').value;
+  const out = document.getElementById('mdOut');
+  if (!text.trim()) { out.innerHTML = ''; return; }
+  if (typeof marked === 'undefined') { out.innerHTML = '<p style="color:var(--rose)">Marked 库加载失败</p>'; return; }
+  out.innerHTML = marked.parse(text);
+}
+</script>
+</body>
+</html>

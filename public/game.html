@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>CODE BREAKER - 代码破译者 | APIForge</title>
+<meta name="description" content="每日十六进制密码破译挑战。破解4位HEX密码，考验你的逻辑推理能力。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<!-- ADSENSE: Uncomment and replace YOUR_PUB_ID -->
+<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_PUB_ID" crossorigin="anonymous"></script> -->
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--bg-2:#0e0e16;--bg-3:#13131e;--bg-card:#111119;
+  --cyan:#00d4ff;--cyan-dim:rgba(0,212,255,.15);--cyan-glow:rgba(0,212,255,.4);
+  --purple:#8b5cf6;--green:#22d3a7;--amber:#f59e0b;--rose:#f43f5e;
+  --text:#e4e4ef;--text-dim:#7a7a92;--text-muted:#4a4a62;
+  --border:#1e1e2e;--border-lit:#2a2a3e;
+  --font-head:'Outfit',sans-serif;--font-mono:'JetBrains Mono',monospace;
+}
+html{font-size:16px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-mono);line-height:1.6;
+  overflow-x:hidden;-webkit-font-smoothing:antialiased;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none}
+
+/* Scanline + noise */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.03) 2px,rgba(0,0,0,.03) 4px);opacity:.4}
+
+/* Grid BG */
+.grid-bg{position:fixed;inset:0;z-index:-1;overflow:hidden}
+.grid-bg::before{content:'';position:absolute;inset:-50%;
+  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
+  background-size:60px 60px;opacity:.3;transform:perspective(500px) rotateX(60deg);transform-origin:center 20%}
+.grid-bg::after{content:'';position:absolute;inset:0;
+  background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(0,212,255,.08),transparent 70%)}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;
+  background:rgba(10,10,15,.8);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+nav .c{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;align-items:center;justify-content:space-between}
+.logo{font-family:var(--font-head);font-weight:800;font-size:1.2rem;color:#fff;text-decoration:none;
+  display:flex;align-items:center;gap:8px}
+.logo-mark{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,var(--cyan),var(--purple));
+  display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;color:#fff}
+.nav-links{display:flex;align-items:center;gap:20px}
+.nav-links a{color:var(--text-dim);text-decoration:none;font-size:.8rem;font-family:var(--font-head);
+  font-weight:500;transition:color .2s}
+.nav-links a:hover,.nav-links a.active{color:var(--cyan)}
+.nav-cta{padding:6px 16px;border-radius:8px;background:var(--cyan);color:var(--bg);font-weight:600;
+  font-size:.8rem;text-decoration:none;font-family:var(--font-head)}
+
+/* Game Container */
+.game{max-width:420px;margin:0 auto;padding:76px 16px 24px;display:flex;flex-direction:column;
+  align-items:center;min-height:100vh}
+
+/* Header */
+.game-hdr{text-align:center;margin-bottom:16px;width:100%}
+.game-hdr h1{font-family:var(--font-head);font-size:1.5rem;font-weight:800;color:#fff;
+  letter-spacing:.05em;margin-bottom:2px}
+.game-hdr h1 span{background:linear-gradient(135deg,var(--cyan),var(--purple));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.game-sub{font-size:.75rem;color:var(--text-muted);margin-bottom:10px}
+.game-bar{display:flex;justify-content:center;gap:12px;align-items:center}
+.game-bar button{background:none;border:1px solid var(--border);color:var(--text-dim);
+  padding:4px 12px;border-radius:6px;font-size:.75rem;cursor:pointer;font-family:var(--font-mono);
+  transition:all .2s}
+.game-bar button:hover{border-color:var(--cyan);color:var(--cyan)}
+.day-badge{font-size:.7rem;color:var(--cyan);background:var(--cyan-dim);padding:3px 10px;
+  border-radius:100px;font-weight:500}
+
+/* Board */
+.board{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
+.row{display:flex;gap:6px;justify-content:center}
+.tile{width:62px;height:62px;border:2px solid var(--border);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;
+  color:transparent;background:var(--bg-2);transition:border-color .15s;position:relative}
+.tile.tbd{border-color:var(--text-muted);color:#fff;animation:pop .1s ease}
+.tile.correct{background:#1a7a5e;border-color:var(--green);color:#fff;
+  box-shadow:0 0 14px rgba(34,211,167,.25)}
+.tile.present{background:#7a5a0a;border-color:var(--amber);color:#fff;
+  box-shadow:0 0 14px rgba(245,158,11,.2)}
+.tile.absent{background:var(--border-lit);border-color:var(--border-lit);color:#6a6a7a}
+.tile.current{border-color:var(--cyan);box-shadow:0 0 8px var(--cyan-dim)}
+
+@keyframes pop{0%{transform:scale(.8)}50%{transform:scale(1.1)}100%{transform:scale(1)}}
+@keyframes flip{0%{transform:scaleY(1)}50%{transform:scaleY(0)}100%{transform:scaleY(1)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+@keyframes bounce{0%,100%{transform:translateY(0)}40%{transform:translateY(-20px)}60%{transform:translateY(-8px)}}
+.tile.flip{animation:flip .5s ease}
+.row.shake{animation:shake .4s ease}
+.tile.win{animation:bounce .6s ease}
+
+/* Keypad */
+.keypad{width:100%;max-width:360px;margin-bottom:16px}
+.key-row{display:flex;gap:5px;justify-content:center;margin-bottom:5px}
+.key{width:52px;height:48px;border:1px solid var(--border);border-radius:8px;background:var(--bg-3);
+  color:var(--text);font-size:1rem;font-weight:600;cursor:pointer;font-family:var(--font-mono);
+  transition:all .15s;display:flex;align-items:center;justify-content:center}
+.key:active{transform:scale(.92)}
+.key:hover{border-color:var(--text-muted);background:var(--border-lit)}
+.key-action{flex:1;font-size:.8rem;letter-spacing:.02em}
+.key-enter{background:var(--cyan-dim);border-color:rgba(0,212,255,.3);color:var(--cyan)}
+.key-enter:hover{background:rgba(0,212,255,.25)}
+.key.k-correct{background:#1a7a5e;border-color:var(--green);color:#fff}
+.key.k-present{background:#7a5a0a;border-color:var(--amber);color:#fff}
+.key.k-absent{background:var(--bg);border-color:var(--bg);color:var(--text-muted)}
+
+/* Toast */
+.toast{position:fixed;top:80px;left:50%;transform:translateX(-50%);padding:10px 24px;
+  border-radius:8px;background:#fff;color:#000;font-size:.85rem;font-weight:600;
+  font-family:var(--font-head);z-index:200;opacity:0;transition:opacity .3s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Modals */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+  z-index:150;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--bg-2);border:1px solid var(--border);border-radius:14px;
+  max-width:380px;width:100%;padding:28px 24px;position:relative;max-height:90vh;overflow-y:auto}
+.modal-box h2{font-family:var(--font-head);font-size:1.2rem;font-weight:700;color:#fff;
+  text-align:center;margin-bottom:16px}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text-dim);
+  font-size:1.3rem;cursor:pointer}
+.modal-close:hover{color:#fff}
+
+/* Help Modal */
+.help-row{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.help-tile{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:1rem;font-weight:700;color:#fff;flex-shrink:0}
+.help-tile.hc{background:#1a7a5e;border:2px solid var(--green)}
+.help-tile.hp{background:#7a5a0a;border:2px solid var(--amber)}
+.help-tile.ha{background:var(--border-lit);border:2px solid var(--border-lit);color:#6a6a7a}
+.help-text{font-size:.82rem;color:var(--text-dim);line-height:1.5}
+.help-divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+
+/* Stats Modal */
+.stats-row{display:flex;justify-content:space-around;margin-bottom:20px}
+.stat-item{text-align:center}
+.stat-val{font-size:1.6rem;font-weight:700;color:#fff;font-family:var(--font-head)}
+.stat-label{font-size:.65rem;color:var(--text-muted);margin-top:2px}
+.dist-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:.78rem}
+.dist-num{width:14px;text-align:right;color:var(--text-dim);flex-shrink:0}
+.dist-bar{height:22px;border-radius:4px;min-width:22px;display:flex;align-items:center;
+  justify-content:flex-end;padding:0 6px;font-size:.72rem;font-weight:600;color:#fff;
+  background:var(--border-lit);transition:width .5s ease}
+.dist-bar.highlight{background:var(--green)}
+.share-btn{display:block;width:100%;padding:12px;border:none;border-radius:8px;
+  background:var(--green);color:#fff;font-size:.9rem;font-weight:700;cursor:pointer;
+  font-family:var(--font-head);margin-top:16px;transition:all .2s}
+.share-btn:hover{box-shadow:0 0 20px rgba(34,211,167,.3);transform:translateY(-1px)}
+.countdown{text-align:center;margin-top:12px;font-size:.78rem;color:var(--text-muted)}
+.countdown span{color:var(--cyan);font-weight:600}
+
+/* Ad Slot */
+.ad-game{width:100%;margin:4px 0 12px;border-radius:10px;border:1px solid var(--border);
+  background:var(--bg-2);overflow:hidden;text-align:center;min-height:90px;
+  display:flex;align-items:center;justify-content:center;position:relative}
+.ad-label{position:absolute;top:4px;right:8px;font-size:.55rem;color:var(--text-muted);
+  letter-spacing:.05em;text-transform:uppercase;font-family:var(--font-head)}
+.ad-placeholder{color:var(--text-muted);font-size:.72rem;font-family:var(--font-head)}
+
+/* Promo */
+.promo{margin-top:auto;padding:20px 0 8px;text-align:center;width:100%}
+.promo-text{font-size:.72rem;color:var(--text-muted);margin-bottom:8px;font-family:var(--font-head)}
+.promo-link{display:inline-block;padding:6px 18px;border-radius:8px;border:1px solid var(--border);
+  color:var(--cyan);font-size:.75rem;text-decoration:none;font-family:var(--font-head);
+  font-weight:600;transition:all .2s}
+.promo-link:hover{border-color:var(--cyan);background:var(--cyan-dim)}
+
+/* Responsive */
+@media(max-width:420px){
+  .tile{width:56px;height:56px;font-size:1.3rem}
+  .key{width:44px;height:44px;font-size:.9rem}
+  .game-hdr h1{font-size:1.3rem}
+  .nav-links a:not(.nav-cta){display:none}
+}
+@media(max-width:350px){
+  .tile{width:48px;height:48px;font-size:1.1rem}
+  .key{width:38px;height:40px;font-size:.8rem}
+}
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+
+<nav><div class="c">
+  <a href="/" class="logo"><div class="logo-mark">DT</div>DevToolBox</a>
+  <div class="nav-links">
+    <a href="/">工具</a>
+    <a href="/game.html" class="active">游戏</a>
+  </div>
+</div></nav>
+
+<main class="game">
+  <div class="game-hdr">
+    <h1>CODE <span>BREAKER</span></h1>
+    <div class="game-sub">代码破译者 // 每日十六进制密码挑战</div>
+    <div class="game-bar">
+      <span class="day-badge" id="dayBadge">DAY #001</span>
+      <button onclick="openModal('help')">? 规则</button>
+      <button onclick="openModal('stats')">统计</button>
+    </div>
+  </div>
+  <div class="board" id="board"></div>
+  <div class="keypad" id="keypad"></div>
+  <!-- AD SLOT: Between keypad and footer -->
+  <div class="ad-game" id="ad-game">
+    <span class="ad-label">AD</span>
+    <!-- ADSENSE: Replace with your ad unit code -->
+    <span class="ad-placeholder">广告位</span>
+  </div>
+  <div class="promo">
+    <div class="promo-text">DevToolBox - 免费开发者工具</div>
+    <a href="/" class="promo-link">使用工具 &rarr;</a>
+  </div>
+</main>
+
+<!-- Help Modal -->
+<div class="modal-overlay" id="helpModal">
+<div class="modal-box">
+  <button class="modal-close" onclick="closeModals()">&times;</button>
+  <h2>如何游玩</h2>
+  <p style="font-size:.82rem;color:var(--text-dim);margin-bottom:16px;text-align:center;line-height:1.6">
+    破解 4 位十六进制密码 (0-9, A-F)<br>你有 <strong style="color:#fff">8 次</strong>尝试机会
+  </p>
+  <hr class="help-divider">
+  <div class="help-row">
+    <div class="help-tile hc">A</div>
+    <div class="help-text"><strong style="color:var(--green)">绿色</strong> — 字符正确，位置正确</div>
+  </div>
+  <div class="help-row">
+    <div class="help-tile hp">7</div>
+    <div class="help-text"><strong style="color:var(--amber)">黄色</strong> — 密码中有此字符，但位置不对</div>
+  </div>
+  <div class="help-row">
+    <div class="help-tile ha">3</div>
+    <div class="help-text"><strong style="color:var(--text-muted)">灰色</strong> — 密码中没有此字符</div>
+  </div>
+  <hr class="help-divider">
+  <p style="font-size:.78rem;color:var(--text-muted);text-align:center;line-height:1.6">
+    每天零点刷新新密码，全球同步<br>挑战朋友，分享你的成绩！
+  </p>
+</div>
+</div>
+
+<!-- Stats Modal -->
+<div class="modal-overlay" id="statsModal">
+<div class="modal-box">
+  <button class="modal-close" onclick="closeModals()">&times;</button>
+  <h2>统计数据</h2>
+  <div class="stats-row" id="statsRow"></div>
+  <h2 style="font-size:.9rem;margin-bottom:10px">猜测分布</h2>
+  <div id="distChart"></div>
+  <button class="share-btn" id="shareBtn" onclick="shareResults()">分享成绩</button>
+  <div class="countdown" id="countdown"></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ==================== Constants ====================
+const MAX_GUESSES = 8;
+const CODE_LEN = 4;
+const HEX = '0123456789ABCDEF'.split('');
+const START_DATE = new Date(2026, 0, 1); // Jan 1 2026
+
+const WIN_MESSAGES = ['天才！','不可思议','太强了','漂亮','不错','还行','勉强过关','惊险过关'];
+
+// ==================== State ====================
+let state = {
+  secret: [],
+  guesses: [],      // array of arrays
+  evaluations: [],   // array of arrays of 'correct'|'present'|'absent'
+  current: [],
+  currentRow: 0,
+  gameOver: false,
+  won: false,
+  dayNumber: 0
+};
+
+// ==================== Daily Code Generation ====================
+function getDayNumber() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.floor((today - START_DATE) / 86400000);
+}
+
+function generateCode(dayNum) {
+  let s = dayNum * 2654435761;
+  s = ((s >>> 0) ^ (s << 13)) >>> 0;
+  s = ((s >>> 0) ^ (s >> 7)) >>> 0;
+  s = ((s >>> 0) ^ (s << 17)) >>> 0;
+  const code = [];
+  for (let i = 0; i < CODE_LEN; i++) {
+    s = (s * 1103515245 + 12345 + i * 7919) >>> 0;
+    code.push(HEX[s % 16]);
+  }
+  return code;
+}
+
+// ==================== Evaluation (Mastermind Algorithm) ====================
+function evaluate(guess, secret) {
+  const result = Array(CODE_LEN).fill('absent');
+  const secCopy = [...secret];
+  const gueCopy = [...guess];
+  // Pass 1: correct position
+  for (let i = 0; i < CODE_LEN; i++) {
+    if (gueCopy[i] === secCopy[i]) {
+      result[i] = 'correct';
+      secCopy[i] = null;
+      gueCopy[i] = null;
+    }
+  }
+  // Pass 2: present but wrong position
+  for (let i = 0; i < CODE_LEN; i++) {
+    if (gueCopy[i] === null) continue;
+    const idx = secCopy.indexOf(gueCopy[i]);
+    if (idx !== -1) {
+      result[i] = 'present';
+      secCopy[idx] = null;
+    }
+  }
+  return result;
+}
+
+// ==================== Board & Keypad Creation ====================
+function createBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  for (let r = 0; r < MAX_GUESSES; r++) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.id = 'row-' + r;
+    for (let c = 0; c < CODE_LEN; c++) {
+      const tile = document.createElement('div');
+      tile.className = 'tile';
+      tile.id = `t-${r}-${c}`;
+      row.appendChild(tile);
+    }
+    board.appendChild(row);
+  }
+}
+
+function createKeypad() {
+  const keypad = document.getElementById('keypad');
+  keypad.innerHTML = '';
+  const rows = [['0','1','2','3'],['4','5','6','7'],['8','9','A','B'],['C','D','E','F']];
+  for (const r of rows) {
+    const rd = document.createElement('div');
+    rd.className = 'key-row';
+    for (const k of r) {
+      const b = document.createElement('button');
+      b.className = 'key';
+      b.textContent = k;
+      b.id = 'k-' + k;
+      b.addEventListener('click', () => handleInput(k));
+      rd.appendChild(b);
+    }
+    keypad.appendChild(rd);
+  }
+  const ar = document.createElement('div');
+  ar.className = 'key-row';
+  const del = document.createElement('button');
+  del.className = 'key key-action';
+  del.textContent = '\u2190 删除';
+  del.addEventListener('click', handleDelete);
+  const ent = document.createElement('button');
+  ent.className = 'key key-action key-enter';
+  ent.textContent = '确认 \u21B5';
+  ent.addEventListener('click', handleSubmit);
+  ar.appendChild(del);
+  ar.appendChild(ent);
+  keypad.appendChild(ar);
+}
+
+// ==================== Input Handling ====================
+function handleInput(ch) {
+  if (state.gameOver || state.current.length >= CODE_LEN) return;
+  state.current.push(ch);
+  const idx = state.current.length - 1;
+  const tile = document.getElementById(`t-${state.currentRow}-${idx}`);
+  tile.textContent = ch;
+  tile.classList.add('tbd');
+  // Highlight current input position
+  updateCurrentHighlight();
+}
+
+function handleDelete() {
+  if (state.gameOver || state.current.length === 0) return;
+  const idx = state.current.length - 1;
+  const tile = document.getElementById(`t-${state.currentRow}-${idx}`);
+  tile.textContent = '';
+  tile.classList.remove('tbd');
+  state.current.pop();
+  updateCurrentHighlight();
+}
+
+function updateCurrentHighlight() {
+  // Remove all current highlights
+  document.querySelectorAll('.tile.current').forEach(t => t.classList.remove('current'));
+  if (state.gameOver) return;
+  // Highlight next empty tile in current row
+  if (state.current.length < CODE_LEN) {
+    const next = document.getElementById(`t-${state.currentRow}-${state.current.length}`);
+    if (next) next.classList.add('current');
+  }
+}
+
+async function handleSubmit() {
+  if (state.gameOver) return;
+  if (state.current.length < CODE_LEN) {
+    shakeRow(state.currentRow);
+    showToast('请输入 4 位');
+    return;
+  }
+
+  const guess = [...state.current];
+  const result = evaluate(guess, state.secret);
+
+  state.guesses.push(guess);
+  state.evaluations.push(result);
+
+  // Remove current highlight
+  document.querySelectorAll('.tile.current').forEach(t => t.classList.remove('current'));
+
+  // Reveal with animation
+  await revealRow(state.currentRow, result);
+
+  // Update key colors
+  updateKeyColors(guess, result);
+
+  // Check win/lose
+  const won = result.every(r => r === 'correct');
+  if (won) {
+    state.won = true;
+    state.gameOver = true;
+    await bounceRow(state.currentRow);
+    showToast(WIN_MESSAGES[state.currentRow] || '成功！');
+    updateStats(true, state.currentRow + 1);
+    saveState();
+    setTimeout(() => openModal('stats'), 1800);
+    return;
+  }
+
+  state.currentRow++;
+  state.current = [];
+
+  if (state.currentRow >= MAX_GUESSES) {
+    state.gameOver = true;
+    showToast('密码是: ' + state.secret.join(''), 3000);
+    updateStats(false, 0);
+    saveState();
+    setTimeout(() => openModal('stats'), 2500);
+    return;
+  }
+
+  updateCurrentHighlight();
+  saveState();
+}
+
+// ==================== Animations ====================
+function revealRow(rowIdx, results) {
+  return new Promise(resolve => {
+    for (let c = 0; c < CODE_LEN; c++) {
+      const tile = document.getElementById(`t-${rowIdx}-${c}`);
+      setTimeout(() => {
+        tile.classList.add('flip');
+        setTimeout(() => {
+          tile.classList.remove('tbd');
+          tile.classList.add(results[c]);
+        }, 240);
+      }, c * 280);
+    }
+    setTimeout(resolve, CODE_LEN * 280 + 500);
+  });
+}
+
+function bounceRow(rowIdx) {
+  return new Promise(resolve => {
+    for (let c = 0; c < CODE_LEN; c++) {
+      setTimeout(() => {
+        document.getElementById(`t-${rowIdx}-${c}`).classList.add('win');
+      }, c * 100);
+    }
+    setTimeout(resolve, CODE_LEN * 100 + 600);
+  });
+}
+
+function shakeRow(rowIdx) {
+  const row = document.getElementById('row-' + rowIdx);
+  row.classList.add('shake');
+  setTimeout(() => row.classList.remove('shake'), 500);
+}
+
+// ==================== Key Colors ====================
+const keyStates = {};
+function updateKeyColors(guess, result) {
+  const priority = { correct: 3, present: 2, absent: 1 };
+  for (let i = 0; i < CODE_LEN; i++) {
+    const ch = guess[i];
+    const cur = keyStates[ch] || 0;
+    const next = priority[result[i]];
+    if (next > cur) {
+      keyStates[ch] = next;
+      const el = document.getElementById('k-' + ch);
+      if (!el) continue;
+      el.classList.remove('k-correct', 'k-present', 'k-absent');
+      el.classList.add('k-' + result[i]);
+    }
+  }
+}
+
+// ==================== Toast ====================
+let toastTimer;
+function showToast(msg, dur = 1500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), dur);
+}
+
+// ==================== Modals ====================
+function openModal(name) {
+  closeModals();
+  if (name === 'stats') renderStats();
+  document.getElementById(name + 'Modal').classList.add('open');
+}
+function closeModals() {
+  document.querySelectorAll('.modal-overlay').forEach(m => m.classList.remove('open'));
+}
+// Close on overlay click
+document.addEventListener('click', e => {
+  if (e.target.classList.contains('modal-overlay')) closeModals();
+});
+
+// ==================== Stats ====================
+function getStats() {
+  try { return JSON.parse(localStorage.getItem('cb_stats')) || defaultStats(); }
+  catch { return defaultStats(); }
+}
+function defaultStats() {
+  return { played: 0, won: 0, streak: 0, maxStreak: 0, dist: [0,0,0,0,0,0,0,0] };
+}
+function updateStats(won, guesses) {
+  const s = getStats();
+  s.played++;
+  if (won) {
+    s.won++;
+    s.streak++;
+    s.dist[guesses - 1]++;
+    if (s.streak > s.maxStreak) s.maxStreak = s.streak;
+  } else {
+    s.streak = 0;
+  }
+  localStorage.setItem('cb_stats', JSON.stringify(s));
+}
+function renderStats() {
+  const s = getStats();
+  const pct = s.played ? Math.round(s.won / s.played * 100) : 0;
+  document.getElementById('statsRow').innerHTML = [
+    ['played', '场次', s.played], ['won', '胜率', pct + '%'],
+    ['streak', '连胜', s.streak], ['maxStreak', '最高连胜', s.maxStreak]
+  ].map(([, l, v]) => `<div class="stat-item"><div class="stat-val">${v}</div><div class="stat-label">${l}</div></div>`).join('');
+
+  const maxD = Math.max(...s.dist, 1);
+  document.getElementById('distChart').innerHTML = s.dist.map((v, i) => {
+    const w = Math.max(v / maxD * 100, 8);
+    const hl = state.gameOver && state.won && i === state.guesses.length - 1 ? ' highlight' : '';
+    return `<div class="dist-row"><div class="dist-num">${i + 1}</div><div class="dist-bar${hl}" style="width:${w}%">${v}</div></div>`;
+  }).join('');
+
+  // Share button visibility
+  document.getElementById('shareBtn').style.display = state.gameOver ? 'block' : 'none';
+
+  // Countdown
+  renderCountdown();
+}
+function renderCountdown() {
+  const el = document.getElementById('countdown');
+  if (!state.gameOver) { el.innerHTML = ''; return; }
+  function tick() {
+    const now = new Date();
+    const tmr = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const diff = tmr - now;
+    const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
+    const sec = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+    el.innerHTML = '下一个密码: <span>' + h + ':' + m + ':' + sec + '</span>';
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ==================== Share ====================
+function shareResults() {
+  const emoji = { correct: '\u{1F7E9}', present: '\u{1F7E8}', absent: '\u2B1B' };
+  const icon = state.won ? '\u{1F513}' : '\u{1F480}';
+  const score = state.won ? (state.guesses.length + '/' + MAX_GUESSES) : ('X/' + MAX_GUESSES);
+  const s = getStats();
+  let text = `CODE BREAKER #${String(state.dayNumber).padStart(3,'0')} ${icon}\n`;
+  for (const ev of state.evaluations) {
+    text += ev.map(e => emoji[e]).join('') + '\n';
+  }
+  text += `${score}`;
+  if (s.streak > 1) text += ` | \u{1F525}${s.streak}\u8FDE\u80DC`;
+  text += '\n\u6765\u6311\u6218: ' + location.href;
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板！'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('已复制到剪贴板！'); }
+    catch { showToast('复制失败，请手动复制'); }
+    document.body.removeChild(ta);
+  }
+}
+
+// ==================== State Persistence ====================
+function saveState() {
+  localStorage.setItem('cb_state', JSON.stringify({
+    dayNumber: state.dayNumber,
+    guesses: state.guesses,
+    evaluations: state.evaluations,
+    gameOver: state.gameOver,
+    won: state.won
+  }));
+}
+
+function loadState() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('cb_state'));
+    if (saved && saved.dayNumber === state.dayNumber) {
+      return saved;
+    }
+  } catch {}
+  return null;
+}
+
+// ==================== Restore Previous Game ====================
+function restoreGame(saved) {
+  state.guesses = saved.guesses;
+  state.evaluations = saved.evaluations;
+  state.currentRow = saved.guesses.length;
+  state.gameOver = saved.gameOver;
+  state.won = saved.won;
+  state.current = [];
+
+  // Restore board visually (no animation)
+  for (let r = 0; r < saved.guesses.length; r++) {
+    for (let c = 0; c < CODE_LEN; c++) {
+      const tile = document.getElementById(`t-${r}-${c}`);
+      tile.textContent = saved.guesses[r][c];
+      tile.classList.add(saved.evaluations[r][c]);
+    }
+  }
+  // Restore key colors
+  for (let r = 0; r < saved.guesses.length; r++) {
+    updateKeyColors(saved.guesses[r], saved.evaluations[r]);
+  }
+  if (!state.gameOver) updateCurrentHighlight();
+}
+
+// ==================== Keyboard Input ====================
+document.addEventListener('keydown', e => {
+  if (document.querySelector('.modal-overlay.open')) {
+    if (e.key === 'Escape') closeModals();
+    return;
+  }
+  const k = e.key.toUpperCase();
+  if (HEX.includes(k)) { handleInput(k); e.preventDefault(); }
+  else if (e.key === 'Backspace') { handleDelete(); e.preventDefault(); }
+  else if (e.key === 'Enter') { handleSubmit(); e.preventDefault(); }
+});
+
+// ==================== Init ====================
+function init() {
+  state.dayNumber = getDayNumber();
+  state.secret = generateCode(state.dayNumber);
+  document.getElementById('dayBadge').textContent = 'DAY #' + String(state.dayNumber).padStart(3, '0');
+
+  createBoard();
+  createKeypad();
+
+  const saved = loadState();
+  if (saved) {
+    restoreGame(saved);
+  } else {
+    updateCurrentHighlight();
+    // Show help on first ever visit
+    if (!localStorage.getItem('cb_stats')) {
+      setTimeout(() => openModal('help'), 500);
+    }
+  }
+}
+
+init();
+</script>
+</body>
+</html>
