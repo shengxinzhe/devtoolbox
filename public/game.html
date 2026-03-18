@@ -71,6 +71,9 @@ nav .c{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;align-items:ce
 /* Board */
 .board{display:flex;flex-direction:column;gap:6px;margin-bottom:20px}
 .row{display:flex;gap:6px;justify-content:center}
+.row-new{animation:slideIn .3s ease}
+@keyframes slideIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.guess-info{text-align:center;font-size:.72rem;color:var(--text-muted);margin-bottom:14px;font-family:var(--font-head)}
 .tile{width:62px;height:62px;border:2px solid var(--border);border-radius:8px;
   display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;
   color:transparent;background:var(--bg-2);transition:border-color .15s;position:relative}
@@ -193,6 +196,7 @@ nav .c{max-width:1200px;margin:0 auto;padding:0 20px;display:flex;align-items:ce
       <button onclick="openModal('stats')">统计</button>
     </div>
   </div>
+  <div class="guess-info" id="guessInfo"></div>
   <div class="board" id="board"></div>
   <div class="keypad" id="keypad"></div>
   <div class="promo">
@@ -315,21 +319,35 @@ function evaluate(guess, secret) {
 }
 
 // ==================== Board & Keypad Creation ====================
+function addRow(rowIdx, animate) {
+  const board = document.getElementById('board');
+  const row = document.createElement('div');
+  row.className = 'row' + (animate ? ' row-new' : '');
+  row.id = 'row-' + rowIdx;
+  for (let c = 0; c < CODE_LEN; c++) {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.id = `t-${rowIdx}-${c}`;
+    row.appendChild(tile);
+  }
+  board.appendChild(row);
+}
+
+function updateGuessInfo() {
+  const el = document.getElementById('guessInfo');
+  if (state.gameOver) {
+    el.textContent = state.won ? '密码已破解!' : '挑战失败';
+  } else {
+    const left = MAX_GUESSES - state.currentRow;
+    el.textContent = '剩余 ' + left + ' 次机会';
+  }
+}
+
 function createBoard() {
   const board = document.getElementById('board');
   board.innerHTML = '';
-  for (let r = 0; r < MAX_GUESSES; r++) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    row.id = 'row-' + r;
-    for (let c = 0; c < CODE_LEN; c++) {
-      const tile = document.createElement('div');
-      tile.className = 'tile';
-      tile.id = `t-${r}-${c}`;
-      row.appendChild(tile);
-    }
-    board.appendChild(row);
-  }
+  addRow(0, false);
+  updateGuessInfo();
 }
 
 function createKeypad() {
@@ -428,6 +446,7 @@ async function handleSubmit() {
     await bounceRow(state.currentRow);
     showToast(WIN_MESSAGES[state.currentRow] || '成功！');
     updateStats(true, state.currentRow + 1);
+    updateGuessInfo();
     saveState();
     setTimeout(() => openModal('stats'), 1800);
     return;
@@ -440,11 +459,14 @@ async function handleSubmit() {
     state.gameOver = true;
     showToast('密码是: ' + state.secret.join(''), 3000);
     updateStats(false, 0);
+    updateGuessInfo();
     saveState();
     setTimeout(() => openModal('stats'), 2500);
     return;
   }
 
+  addRow(state.currentRow, true);
+  updateGuessInfo();
   updateCurrentHighlight();
   saveState();
 }
@@ -639,18 +661,27 @@ function restoreGame(saved) {
   state.won = saved.won;
   state.current = [];
 
-  // Restore board visually (no animation)
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  // Recreate completed rows
   for (let r = 0; r < saved.guesses.length; r++) {
+    addRow(r, false);
     for (let c = 0; c < CODE_LEN; c++) {
       const tile = document.getElementById(`t-${r}-${c}`);
       tile.textContent = saved.guesses[r][c];
       tile.classList.add(saved.evaluations[r][c]);
     }
   }
+  // Add current input row if game isn't over
+  if (!state.gameOver) {
+    addRow(state.currentRow, false);
+  }
   // Restore key colors
   for (let r = 0; r < saved.guesses.length; r++) {
     updateKeyColors(saved.guesses[r], saved.evaluations[r]);
   }
+  updateGuessInfo();
   if (!state.gameOver) updateCurrentHighlight();
 }
 
