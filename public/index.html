@@ -7,14 +7,6 @@
 <meta name="description" content="免费在线开发者工具：QR Code 生成、Base64 编解码、SHA 哈希、JSON 格式化、UUID 生成、Markdown 预览。无需注册，打开即用。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
-<!--
-  ============ GOOGLE ADSENSE ============
-  Step 1: Replace YOUR_PUB_ID with your AdSense publisher ID (e.g., ca-pub-1234567890)
-  Step 2: Uncomment the script tag below
-  Step 3: Replace each ad slot's placeholder with your ad unit code from AdSense
-  ========================================
--->
-<!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=YOUR_PUB_ID" crossorigin="anonymous"></script> -->
 <script defer src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
@@ -166,17 +158,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;
   transition:all .2s;white-space:nowrap;flex-shrink:0}
 .promo-btn:hover{background:var(--cyan-dim);box-shadow:0 0 16px var(--cyan-glow)}
 
-/* Ad Slots */
-.ad-slot{max-width:720px;margin:0 auto;padding:0 16px}
-.ad-container{border-radius:10px;border:1px solid var(--border);background:var(--bg-2);
-  overflow:hidden;text-align:center;min-height:90px;display:flex;align-items:center;justify-content:center;
-  position:relative}
-.ad-container.ad-banner{min-height:90px;margin-bottom:20px}
-.ad-container.ad-rect{min-height:250px;margin:20px 0}
-.ad-label{position:absolute;top:4px;right:8px;font-size:.55rem;color:var(--text-muted);
-  letter-spacing:.05em;text-transform:uppercase;font-family:var(--font-head)}
-.ad-placeholder{color:var(--text-muted);font-size:.72rem;font-family:var(--font-head)}
-
 /* Footer */
 .footer{text-align:center;padding:20px;border-top:1px solid var(--border);font-size:.7rem;color:var(--text-muted)}
 
@@ -208,15 +189,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;
   <h1>开发者<span>工具箱</span></h1>
   <p>免费在线工具 | 无需注册 | 打开即用</p>
 </section>
-
-<!-- AD SLOT 1: Banner between hero and tools -->
-<div class="ad-slot">
-  <div class="ad-container ad-banner" id="ad-top">
-    <span class="ad-label">AD</span>
-    <!-- ADSENSE: Replace this div's content with your ad unit code -->
-    <span class="ad-placeholder">广告位</span>
-  </div>
-</div>
 
 <main class="tools">
   <div class="tabs" id="tabs">
@@ -313,15 +285,6 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:14px 0;
     <div class="md-preview" id="mdOut"></div>
   </div>
 </main>
-
-<!-- AD SLOT 2: Rectangle between tools and game promo -->
-<div class="ad-slot">
-  <div class="ad-container ad-rect" id="ad-mid">
-    <span class="ad-label">AD</span>
-    <!-- ADSENSE: Replace this div's content with your ad unit code -->
-    <span class="ad-placeholder">广告位</span>
-  </div>
-</div>
 
 <section class="game-promo">
   <div class="promo-card">
